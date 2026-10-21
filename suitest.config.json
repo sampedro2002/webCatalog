@@ -1,0 +1,5 @@
+{
+  "mode": "backend",
+  "baseUrl": "http://localhost:8080",
+  "projectPath": "."
+}

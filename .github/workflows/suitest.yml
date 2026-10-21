@@ -1,0 +1,11 @@
+name: Suitest E2E
+on:
+  push:
+    branches: [ test ]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prueba de conexión rápida
+        run: echo "¡El check e2e funciona correctamente!"
