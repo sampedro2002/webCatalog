@@ -24,19 +24,15 @@
             <div class="topbar__actions">
                 <div class="search">
                     <label for="searchInput" class="search-label">Search by name</label>
-                    <input type="search" id="searchInput" class="search__input" placeholder="e.g. Rick Sanchez" autocomplete="off" aria-describedby="searchHint">
+                    <input type="search" id="searchInput" class="search__input" placeholder="e.g. Rick, Earth or Pilot" autocomplete="off" aria-describedby="searchHint">
                 </div>
             </div>
         </div>
     </header>
     <main class="container">
-        <div class="resource-buttons" role="group" aria-label="Content type">
-            <button class="btn btn--primary" data-resource="character" aria-pressed="true">Characters</button>
-            <button class="btn" data-resource="location" aria-pressed="false">Locations</button>
-            <button class="btn" data-resource="episode" aria-pressed="false">Episodes</button>
-        </div>
+        <button id="restore" type="button" class="btn" hidden>Restore deleted</button>
         <p id="searchHint" class="search-hint">Search runs 4 seconds after you stop typing.</p>
-        <h2 id="sectionTitle">Characters</h2>
+        <h2 id="sectionTitle">Characters, locations and episodes</h2>
         <p id="message" class="message" role="status" aria-live="polite"></p>
         <span id="spinner" class="spinner" aria-hidden="true" hidden></span>
         <button id="retry" class="btn" hidden>Retry</button>
@@ -50,8 +46,8 @@
     </main>
     <dialog id="characterDialog" class="character-dialog" aria-labelledby="characterTitle">
         <div class="modal__header">
-            <h2 id="characterTitle">Character details</h2>
-            <button id="closeCharacter" type="button" class="modal__close" aria-label="Close character details" autofocus>&times;</button>
+            <h2 id="characterTitle">Details</h2>
+            <button id="closeCharacter" type="button" class="modal__close" aria-label="Close details" autofocus>&times;</button>
         </div>
         <div id="characterDetails"></div>
     </dialog>
