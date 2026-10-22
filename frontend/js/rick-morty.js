@@ -10,6 +10,7 @@
     };
     const grid = document.getElementById("grid");
     const message = document.getElementById("message");
+    const spinner = document.getElementById("spinner");
     const search = document.getElementById("searchInput");
     const previous = document.getElementById("previous");
     const next = document.getElementById("next");
@@ -129,30 +130,44 @@
     });
     characterDialog.addEventListener("close", () => characterTrigger?.focus());
 
+    function setLoading(loading) {
+        spinner.hidden = !loading;
+        grid.setAttribute("aria-busy", String(loading));
+    }
+
+    // Resolves to null when the API answers 404 (no matches for the filter).
+    async function fetchData(endpoint, page, name) {
+        const url = new URL(`${API_URL}/${endpoint}`);
+        url.searchParams.set("page", page);
+        if (name) url.searchParams.set("name", name);
+        const current = new AbortController();
+        controller = current;
+        const timeout = setTimeout(() => current.abort(), 15000);
+        try {
+            const response = await fetch(url, { signal: current.signal });
+            if (response.status === 404) return null;
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return await response.json();
+        } finally {
+            clearTimeout(timeout);
+        }
+    }
+
     async function load() {
         cancelPending();
         const requestVersion = version;
         const kind = resource;
-        controller = new AbortController();
-        const requestController = controller;
-        const timeout = setTimeout(() => requestController.abort(), 15000);
         grid.replaceChildren();
-        grid.setAttribute("aria-busy", "true");
+        setLoading(true);
         pageInfo.textContent = "";
         showMessage("Loading...");
-        const url = new URL(`${API_URL}/${kind}`);
-        url.searchParams.set("page", page);
-        if (search.value.trim()) url.searchParams.set("name", search.value.trim());
         try {
-            const response = await fetch(url, { signal: requestController.signal });
+            const data = await fetchData(kind, page, search.value.trim());
             if (requestVersion !== version) return;
-            if (response.status === 404) {
+            if (!data) {
                 showMessage("No results found for that name.");
                 return;
             }
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            const data = await response.json();
-            if (requestVersion !== version) return;
             grid.replaceChildren(...data.results.map(item => createCard(item, kind)));
             showMessage(data.results.length ? "" : "No results found.");
             pageInfo.textContent = `Page ${page} of ${data.info.pages} · ${data.info.count} results`;
@@ -165,8 +180,7 @@
                 : "Could not load Rick and Morty data. Check your connection and try again.");
             retry.hidden = false;
         } finally {
-            clearTimeout(timeout);
-            if (requestVersion === version) grid.setAttribute("aria-busy", "false");
+            if (requestVersion === version) setLoading(false);
         }
     }
 
@@ -174,7 +188,7 @@
         cancelPending();
         page = 1;
         grid.replaceChildren();
-        grid.setAttribute("aria-busy", "false");
+        setLoading(true);
         pageInfo.textContent = "";
         showMessage("Loading...");
         timer = setTimeout(load, SEARCH_DELAY);
