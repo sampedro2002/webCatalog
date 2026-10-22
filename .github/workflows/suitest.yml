@@ -2,10 +2,147 @@ name: Suitest E2E
 on:
   push:
     branches: [ test ]
+  workflow_dispatch:
 
 jobs:
   e2e:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
-      - name: Prueba de conexión rápida
-        run: echo "¡El check e2e funciona correctamente!"
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Read Suitest config
+        run: |
+          set -euo pipefail
+          cfg=suitest.config.json
+          db() { jq -r ".database.$1" "$cfg"; }
+          {
+            echo "API_URL=$(jq -r .baseUrl "$cfg")"
+            echo "DB_HOST=$(db host)"
+            echo "DB_PORT=$(db port)"
+            echo "DB_NAME=$(db name)"
+            echo "DB_USERNAME=$(db username)"
+            echo "DB_PASSWORD=$(db password)"
+            echo "DB_ADMIN_USERNAME=$(db adminUsername)"
+            echo "DB_ADMIN_PASSWORD=$(db adminPassword)"
+            echo "DB_URL=jdbc:postgresql://$(db host):$(db port)/$(db name)"
+          } >> "$GITHUB_ENV"
+
+      - name: Prepare test database
+        run: |
+          set -euo pipefail
+          export PGPASSWORD="$DB_ADMIN_PASSWORD"
+          # Admin role for the throwaway CI database, so permissions never block the tests
+          psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_ADMIN_USERNAME" -v ON_ERROR_STOP=1 \
+            -v dbname="$DB_NAME" -v dbuser="$DB_USERNAME" -v dbpass="$DB_PASSWORD" <<'SQL'
+          CREATE ROLE :"dbuser" WITH LOGIN SUPERUSER CREATEDB CREATEROLE PASSWORD :'dbpass';
+          CREATE DATABASE :"dbname" WITH ENCODING 'UTF8' OWNER :"dbuser";
+          \c :"dbname"
+          GRANT ALL ON SCHEMA public TO :"dbuser";
+          SQL
+          echo "Test database $DB_NAME is ready"
+
+      - name: Backend unit tests and package
+        working-directory: backend
+        run: mvn -B package
+
+      - name: Start backend
+        working-directory: backend
+        run: |
+          java -jar target/*.jar > "$RUNNER_TEMP/backend.log" 2>&1 &
+          echo "BACKEND_PID=$!" >> "$GITHUB_ENV"
+
+      - name: Wait for API
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS "$API_URL/api/products" > /dev/null; then
+              echo "API is up at $API_URL"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API did not start. Backend log:"
+          cat "$RUNNER_TEMP/backend.log"
+          exit 1
+
+      - name: API smoke test (products CRUD)
+        run: |
+          set -euo pipefail
+          base="$API_URL/api/products"
+
+          # Seed data is loaded by data.sql
+          count=$(curl -fsS "$base" | jq 'length')
+          [ "$count" -gt 0 ] || { echo "Expected seeded products"; exit 1; }
+
+          # Search endpoint
+          curl -fsS "$base?q=keyboard" > /dev/null
+
+          # Create
+          id=$(curl -fsS -X POST "$base" \
+            -H 'Content-Type: application/json' \
+            -d '{"name":"E2E product","description":"created by CI","price":9.99,"stock":3,"imageUrl":"https://example.com/e2e.jpg"}' \
+            | jq -r .id)
+          [ "$id" != "null" ] && [ -n "$id" ] || { echo "Create did not return an id"; exit 1; }
+
+          # Read
+          name=$(curl -fsS "$base/$id" | jq -r .name)
+          [ "$name" = "E2E product" ] || { echo "Read returned '$name'"; exit 1; }
+
+          # Update
+          curl -fsS -X PUT "$base/$id" \
+            -H 'Content-Type: application/json' \
+            -d '{"name":"E2E product updated","description":"updated by CI","price":19.99,"stock":5,"imageUrl":"https://example.com/e2e.jpg"}' > /dev/null
+          name=$(curl -fsS "$base/$id" | jq -r .name)
+          [ "$name" = "E2E product updated" ] || { echo "Update not applied, got '$name'"; exit 1; }
+
+          # Delete, then expect 404
+          curl -fsS -X DELETE "$base/$id" > /dev/null
+          status=$(curl -s -o /dev/null -w '%{http_code}' "$base/$id")
+          [ "$status" = "404" ] || { echo "Expected 404 after delete, got $status"; exit 1; }
+
+          echo "Products CRUD smoke test passed"
+
+      - name: Frontend tests (Rick and Morty API)
+        run: node --test frontend/tests/rick-morty.test.cjs
+
+      - name: Stop backend
+        if: always()
+        run: |
+          if [ -n "${BACKEND_PID:-}" ]; then kill "$BACKEND_PID" || true; fi
+
+      - name: Upload backend log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-log
+          path: ${{ runner.temp }}/backend.log
+          if-no-files-found: ignore
