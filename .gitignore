@@ -37,3 +37,44 @@ build/
 
 ### Mac OS ###
 .DS_Store
+### Node / Frontend ###
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm
+.eslintcache
+
+### Environment / secrets ###
+.env
+.env.*
+!.env.example
+
+### Logs ###
+*.log
+
+### Test & reports ###
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
+coverage/
+
+### IntelliJ user-specific files ###
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/usage.statistics.xml
+.idea/shelf/
+.idea/dataSources*
+.idea/httpRequests/
+.idea/dictionaries/
+
+### Windows ###
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+### Local Claude settings ###
+.claude/settings.local.json
