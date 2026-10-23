@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rick and Morty | Catalog</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/rick-morty.css">
+    <script src="js/rick-morty.js" defer></script>
+</head>
+<body class="rick-morty">
+    <nav class="navbar" aria-label="Main navigation">
+        <div class="navbar__inner">
+            <a href="index.html" class="navbar__brand">Catalog</a>
+            <ul class="navbar__links">
+                <li><a href="index.html" class="navbar__link">Products</a></li>
+                <li><a href="rick-morty.html" class="navbar__link navbar__link--active" aria-current="page">Rick and Morty</a></li>
+            </ul>
+        </div>
+    </nav>
+    <header class="topbar">
+        <div class="topbar__inner">
+            <h1 class="topbar__title">Rick and Morty</h1>
+            <div class="topbar__actions">
+                <div class="search">
+                    <label for="searchInput" class="search-label">Search by name</label>
+                    <input type="search" id="searchInput" class="search__input" placeholder="e.g. Rick Sanchez" autocomplete="off" aria-describedby="searchHint">
+                </div>
+            </div>
+        </div>
+    </header>
+    <main class="container">
+        <div class="resource-buttons" role="group" aria-label="Content type">
+            <button class="btn btn--primary" data-resource="character" aria-pressed="true">Characters</button>
+            <button class="btn" data-resource="location" aria-pressed="false">Locations</button>
+            <button class="btn" data-resource="episode" aria-pressed="false">Episodes</button>
+        </div>
+        <p id="searchHint" class="search-hint">Search runs 4 seconds after you stop typing.</p>
+        <h2 id="sectionTitle">Characters</h2>
+        <p id="message" class="message" role="status" aria-live="polite"></p>
+        <button id="retry" class="btn" hidden>Retry</button>
+        <section id="grid" class="grid" aria-labelledby="sectionTitle" aria-busy="false"></section>
+        <nav class="pagination" aria-label="Pagination">
+            <button id="previous" class="btn" disabled>Previous</button>
+            <span id="pageInfo" aria-live="polite"></span>
+            <button id="next" class="btn" disabled>Next</button>
+        </nav>
+        <footer class="api-credit">Data from <a href="https://rickandmortyapi.com/" target="_blank" rel="noopener noreferrer">The Rick and Morty API</a>.</footer>
+    </main>
+    <dialog id="characterDialog" class="character-dialog" aria-labelledby="characterTitle">
+        <div class="modal__header">
+            <h2 id="characterTitle">Character details</h2>
+            <button id="closeCharacter" type="button" class="modal__close" aria-label="Close character details" autofocus>&times;</button>
+        </div>
+        <div id="characterDetails"></div>
+    </dialog>
+</body>
+</html>
