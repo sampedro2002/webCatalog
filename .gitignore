@@ -76,5 +76,9 @@ ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 
-### Local Claude settings ###
-.claude/settings.local.json
+# Local Spring Boot credentials - DO NOT commit
+backend/src/main/resources/application-local.properties
+
+node_modules/
+playwright-report/
+test-results/
