@@ -1,5 +1,14 @@
 {
   "mode": "backend",
   "baseUrl": "http://localhost:8080",
-  "projectPath": "."
+  "projectPath": ".",
+  "database": {
+    "host": "localhost",
+    "port": 5432,
+    "name": "catalog_test",
+    "username": "catalog_app",
+    "password": "catalog_app",
+    "adminUsername": "postgres",
+    "adminPassword": "postgres"
+  }
 }
